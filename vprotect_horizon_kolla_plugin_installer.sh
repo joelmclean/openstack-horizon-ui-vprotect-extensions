@@ -1,11 +1,11 @@
 #!/bin/bash
 # ====================================================================================
 # Script Name	: vprotect_horizon_kolla_plugin_installer.sh
-# Version		: 0.6
+# Version		: 1.0
 # Author		: Tomasz Lipczyński
 # Email			: t.lipczynski@storware.eu
 # Created		: 2026-02-04
-# Updated		: 2026-02-11
+# Updated		: 2026-05-19
 # Description	: vProtect Horizon plugin installation tool. Designed to use inside
 # 		  			the horizon pod with kolla.
 # ====================================================================================
@@ -29,6 +29,7 @@ sbr_pass=''
 seleted_version=''
 
 static_zip_path=''
+plugin_repo_zip_path=''
 
 NON_INTERACTIVE=false
 SHOW_VERSIONS=false
@@ -129,6 +130,10 @@ preinstall_check() {
 	local invalid_parameters=0
 	echo -e "${BOLD}"
 
+	if [[ -n "${plugin_repo_zip_path:-}" ]]; then
+		echo -e "${GREEN}Using plugin repo from .zip file: ${plugin_repo_zip_path}"
+	fi
+
 	if [[ -n "${static_zip_path:-}" ]]; then
 		echo -e "${GREEN}vProtect static files .zip: ${static_zip_path}"
 	elif ! [[ -n "${selected_version:-}" ]]; then
@@ -200,11 +205,21 @@ install() {
 	echo ""
 	echo -e "${NC}"
 
-	if (( IS_STATIC_FILES_UPDATE )); then
-		git clone https://github.com/Storware/openstack-horizon-ui-vprotect-extensions.git -b caracal
+	if ! [[ -n "${plugin_repo_zip_path}" ]]; then
+    if (( IS_STATIC_FILES_UPDATE )); then
+      git clone https://github.com/Storware/openstack-horizon-ui-vprotect-extensions.git -b caracal
+    else
+      git clone https://github.com/Storware/openstack-horizon-ui-vprotect-extensions.git
+    fi
 	else
-		git clone https://github.com/Storware/openstack-horizon-ui-vprotect-extensions.git
+		if ! [[ -f "${plugin_repo_zip_path}" ]]; then
+			echo -e "${RED}${BOLD}Plugin repo .zip file not found! (${plugin_repo_zip_path})...${NC}"
+			exit 1
+		fi
+	  python3 -m zipfile -e ${plugin_repo_zip_path} ./
+	  mv -f openstack-horizon-ui-vprotect-extensions-caracal openstack-horizon-ui-vprotect-extensions
 	fi
+
 
 	if ! [[ -d "/tmp/vprotect/openstack-horizon-ui-vprotect-extensions" ]]; then
 		echo -e "${RED}${BOLD}Could not clone git repository: https://github.com/Storware/openstack-horizon-ui-vprotect-extensions.git  ...${NC}"
@@ -329,6 +344,9 @@ Options:
 	--sbr-pass=<password>		Password for the SBR account with horizon restrictions
 	--vprotect-version=<ver>	vProtect plugin version to install
 
+	--plugin-repo-zip-path=<path>	Path to the plugin repo archive (openstack-horizon-ui-vprotect-extensions-caracal.zip).
+	              Can be download directly from github to avoid downloading repo automatically.
+	              Download .zip from caracal branch (important!) (https://github.com/Storware/openstack-horizon-ui-vprotect-extensions/tree/caracal)
 	--static-zip-path=<path>	Path to the static files archive (openstack.zip). Avoids downloading static files. Can be used instead of --vprotect-version
 								Static files can be downloaded from: https://github.com/Storware/ovirt-engine-ui-vprotect-extensions/releases/
 
@@ -339,12 +357,12 @@ Examples:
   $(basename "$0") --show-versions
   $(basename "$0") --uninstall
   $(basename "$0") --non-interactive --sbr-hostname=10.40.14.51 --sbr-user=horizon --sbr-pass=vPr0tect --vprotect-version=7.0.0-3
-  $(basename "$0") --non-interactive --sbr-hostname=10.40.14.51 --sbr-user=horizon --sbr-pass=vPr0tect --static-zip-path=/root/openstack.zip
+  $(basename "$0") --non-interactive --sbr-hostname=10.40.14.51 --sbr-user=horizon --sbr-pass=vPr0tect --static-zip-path=/root/openstack.zip --plugin-repo-zip-path=/root/openstack-horizon-ui-vprotect-extensions-caracal.zip
 EOF
 }
 
 
-ARGS=$(getopt -o h -l sbr-hostname:,sbr-user:,sbr-pass:,vprotect-version:,static-zip-path:,non-interactive,no-colors,show-versions,uninstall,help -- "$@") || exit 1
+ARGS=$(getopt -o h -l sbr-hostname:,sbr-user:,sbr-pass:,vprotect-version:,static-zip-path:,plugin-repo-zip-path:,non-interactive,no-colors,show-versions,uninstall,help -- "$@") || exit 1
 eval set -- "$ARGS"
 
 SHOW_VERSIONS=false
@@ -357,6 +375,7 @@ while true; do
         --sbr-pass) sbr_pass="$2"; shift 2 ;;
         --vprotect-version) selected_version="$2"; shift 2 ;;
         --static-zip-path) static_zip_path="$2"; shift 2 ;;
+        --plugin-repo-zip-path) plugin_repo_zip_path="$2"; shift 2 ;;
         --non-interactive) NON_INTERACTIVE=true; shift ;;
         --show-versions) SHOW_VERSIONS=true; shift ;;
         --uninstall) UNINSTALL=true; shift ;;
