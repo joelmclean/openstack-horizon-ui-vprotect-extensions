@@ -347,7 +347,7 @@ Options:
 
 	--uninstall					Uninstalls vProtect horizon plugin
 
-	--non-interactive			Installs the plugin without further interaction with a script - requires the four arguments below:
+	--non-interactive			Installs the plugin without further interaction with a script - requires the arguments below:
 	--sbr-hostname=<host>		IP or hostname of SBR server
 	--sbr-port=<port>			Port of the SBR server. Defaults to 443
 	--sbr-user=<username>		Username for the SBR account with horizon restrictions
@@ -371,7 +371,7 @@ Examples:
 EOF
 }
 
-ARGS=$(getopt -o h -l sbr-hostname:,sbr-user:,sbr-pass:,vprotect-version:,static-zip-path:,plugin-repo-zip-path:,non-interactive,no-colors,show-versions,uninstall,help -- "$@") || exit 1
+ARGS=$(getopt -o h -l sbr-hostname:,sbr-port:,sbr-user:,sbr-pass:,vprotect-version:,static-zip-path:,plugin-repo-zip-path:,non-interactive,no-colors,show-versions,uninstall,help -- "$@") || exit 1
 eval set -- "$ARGS"
 
 SHOW_VERSIONS=false
