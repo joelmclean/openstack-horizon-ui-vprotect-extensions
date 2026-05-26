@@ -24,6 +24,7 @@ BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 
 sbr_hostname=''
+sbr_port=''
 sbr_user=''
 sbr_pass=''
 seleted_version=''
@@ -111,10 +112,13 @@ select_version() {
 	done
 
 }
+sbr_port=${sbr_port:-443}
 
 get_sbr_credentials() {
-	echo -e "${CYAN}${BOLD}Type in credentials of SBR and its horizon user account (the one with enabled Horizon plugin access restriction)${NC}"
+	echo -e "${CYAN}${BOLD}Type in details and credentials of SBR and its horizon user account (the one with enabled Horizon plugin access restriction)${NC}"
 	read -p "Type your SBR hostname: " sbr_hostname
+	read -p "Type your SBR port [Default: 443]: " sbr_port
+	sbr_port=${sbr_port:-443}
 	read -p "Type your SBR username: " sbr_user
 	read -sp "Type your SBR password: " sbr_pass
 	echo
@@ -122,7 +126,7 @@ get_sbr_credentials() {
 
 get_certificate() {
 	echo -e "${CYAN}${BOLD}Receiving certificate from ${YELLOW}${sbr_hostname}${CYAN}...${NC}"
-	openssl s_client -connect ${sbr_hostname}:443 -showcerts </dev/null \
+	openssl s_client -connect ${sbr_hostname}:${sbr_port} -showcerts </dev/null \
   | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' > /tmp/vprotect/vprotect.crt
 }
 
@@ -248,7 +252,7 @@ install() {
 		exit 1
 	fi
 
-	echo -e "PASSWORD: ${sbr_pass}\nREST_API_URL: https://${sbr_hostname}/api\nUSER: ${sbr_user}" > /tmp/vprotect/openstack-horizon-ui-vprotect-extensions/dashboards/vprotect/config.yaml
+	echo -e "PASSWORD: ${sbr_pass}\nREST_API_URL: https://${sbr_hostname}:${sbr_port}/api\nUSER: ${sbr_user}" > /tmp/vprotect/openstack-horizon-ui-vprotect-extensions/dashboards/vprotect/config.yaml
 
 	if (( IS_STATIC_FILES_UPDATE )); then
 		sed -i 's/dashboard\/static/static/g' $(grep -irl "dashboard/static" /tmp/vprotect/openstack-horizon-ui-vprotect-extensions | grep html)
